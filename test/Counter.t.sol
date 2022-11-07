@@ -4,11 +4,12 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../src/Counter.sol";
 
-contract CounterTest is Test {
-    Counter public counter;
+contract MultiSigWalletTest is Test {
+    MultiSigWallet public multisigwallet;
 
     function setUp() public {
-        counter = new Counter();
+        
+        multisigwallet = new MultiSigWallet();
         counter.setNumber(0);
     }
 
