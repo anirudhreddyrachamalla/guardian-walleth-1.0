@@ -1,3 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --background-color: #fff;
+  --background-color-1: #000;
+  --font-color: #000;
+  --font-color-1: #fff;
+  --success-btn: #067437;
+  --cancel-btn:#eb3d3d;
+  
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
