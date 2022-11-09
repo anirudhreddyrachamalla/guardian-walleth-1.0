@@ -28,7 +28,6 @@ contract MultiSigWallet{
     event TransactionPartiallyRevoked(address _owner);
     event TransactionCompletelyRevoked(address ,uint _amount);
 
-
     constructor(uint _numOfConfirmationsRequired,address[] memory _owners){
 
         require(_owners.length>0,"Owners required");
@@ -129,7 +128,6 @@ contract MultiSigWallet{
         }
         emit TransactionCompletelyApproved(currentTransction.amount);
     }
-
     // This function can be called every four hours, so that it cancels all the transactions 
     // once it has elapsed more than 4 hrs being in the mempool
     function cancelTransaction() internal {
