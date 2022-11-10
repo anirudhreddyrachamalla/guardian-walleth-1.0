@@ -90,11 +90,15 @@ contract Wallet {
         locked = _locked;
     }
 
-    function getLastActiveTime view returns (uint) {
+    function getLastActiveTime() public view returns (uint) {
         return lastActiveTime;
     }
 
-    function getInactivePeriodInDays view returns(uint) {
+    function getInactivePeriodInDays() public view returns (uint) {
         return inactivePeriodInDays;
+    }
+
+    function getPrimaryWalletAddress() public view returns (address) {
+        return primaryWalletAddress;
     }
 }

@@ -4,7 +4,6 @@ pragma solidity 0.8.14;
 import "Wallet.sol";
 
 contract WalletFactory {
-    mapping(Wallet => bool) inactiveWallets;
     Wallet[] wallets;
 
     constructor() {}
@@ -17,9 +16,9 @@ contract WalletFactory {
                 wallets[i].getLastActiveTime() +
                     wallets[i].getInactivePeriodInDays()
             ) {
-                inactiveWallets[wallets[i]] = true;
-            } else {
-                inactiveWallets[wallets[i]] = false;
+                wallets[i].getPrimaryWalletAddress().transfer(
+                    wallets[i].getBalance()
+                );
             }
         }
     }
