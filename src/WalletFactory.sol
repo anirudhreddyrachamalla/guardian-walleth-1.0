@@ -2,11 +2,17 @@
 pragma solidity 0.8.14;
 
 import "Wallet.sol";
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 
-contract WalletFactory {
+contract WalletFactory is AutomationCompatibleInterface {
     Wallet[] wallets;
+    uint public immutable interval;
+    uint public lastTimeStamp;
 
-    constructor() {}
+    constructor(uint updateInterval) {
+        interval = updateInterval;
+        lastTimeStamp = block.timestamp;
+    }
 
     function createWallet(
         address payable _primaryWalletAddress,
@@ -22,18 +28,30 @@ contract WalletFactory {
         );
     }
 
-    function updateInactiveWallets() external {
-        uint currentTime = block.timestamp;
+    function checkUpkeep(bytes calldata)
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
+        upkeepNeeded = (block.timestamp - lastTimeStamp) > interval;
+    }
 
-        for (uint i = 0; i < wallets.length; i++) {
-            if (
-                currentTime >
-                wallets[i].getLastActiveTime() +
-                    (wallets[i].getInactivePeriodInDays() * 1 days)
-            ) {
-                wallets[i].getPrimaryWalletAddress().transfer(
-                    wallets[i].getBalance()
-                );
+    function performUpkeep(bytes calldata performData) external override {
+        // Chailink recommends we revalidate the upkeep in the performUpkeep function
+        if ((block.timestamp - lastTimeStamp) > interval) {
+            lastTimeStamp = block.timestamp;
+
+            for (uint i = 0; i < wallets.length; i++) {
+                if (
+                    currentTime >
+                    wallets[i].getLastActiveTime() +
+                        (wallets[i].getInactivePeriodInDays() * 1 days)
+                ) {
+                    wallets[i].getPrimaryWalletAddress().transfer(
+                        wallets[i].getBalance()
+                    );
+                }
             }
         }
     }
