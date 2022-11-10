@@ -14,7 +14,7 @@ contract WalletFactory {
             if (
                 currentTime >
                 wallets[i].getLastActiveTime() +
-                    wallets[i].getInactivePeriodInDays()
+                    (wallets[i].getInactivePeriodInDays() * 1 days)
             ) {
                 wallets[i].getPrimaryWalletAddress().transfer(
                     wallets[i].getBalance()
