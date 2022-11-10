@@ -42,10 +42,6 @@ contract Wallet {
         payable(msg.sender).transfer(_amount);
     }
 
-    function getBalance() external view returns (uint) {
-        return address(this).balance;
-    }
-
     function updatePrimaryWalletAddress(address payable _primaryWalletAddress)
         external
         onlyOwner
@@ -100,5 +96,9 @@ contract Wallet {
 
     function getPrimaryWalletAddress() public view returns (address) {
         return primaryWalletAddress;
+    }
+
+    function getBalance() external view returns (uint) {
+        return address(this).balance;
     }
 }

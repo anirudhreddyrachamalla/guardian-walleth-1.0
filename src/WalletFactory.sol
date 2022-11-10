@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.14;
 
-import "Wallet.sol";
+import "./Wallet.sol";
 import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 
 contract WalletFactory is AutomationCompatibleInterface {
     Wallet[] wallets;
     uint public immutable interval;
     uint public lastTimeStamp;
+    uint public counter;
 
     constructor(uint updateInterval) {
         interval = updateInterval;
         lastTimeStamp = block.timestamp;
+        counter = 0;
     }
 
     function createWallet(
@@ -42,15 +44,17 @@ contract WalletFactory is AutomationCompatibleInterface {
         if ((block.timestamp - lastTimeStamp) > interval) {
             lastTimeStamp = block.timestamp;
 
+            counter = counter + 1;
+
             for (uint i = 0; i < wallets.length; i++) {
                 if (
-                    currentTime >
+                    lastTimeStamp >
                     wallets[i].getLastActiveTime() +
                         (wallets[i].getInactivePeriodInDays() * 1 days)
                 ) {
-                    wallets[i].getPrimaryWalletAddress().transfer(
-                        wallets[i].getBalance()
-                    );
+                    // wallets[i].getPrimaryWalletAddress().transfer(
+                    //     wallets[i].getBalance()
+                    // );
                 }
             }
         }
