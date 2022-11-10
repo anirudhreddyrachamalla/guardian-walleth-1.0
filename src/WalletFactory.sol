@@ -8,8 +8,23 @@ contract WalletFactory {
 
     constructor() {}
 
+    function createWallet(
+        address payable _primaryWalletAddress,
+        uint _inactivePeriodInDays,
+        uint _withdrawalLimitInWei
+    ) external {
+        wallets.push(
+            new Wallet(
+                _primaryWalletAddress,
+                _inactivePeriodInDays,
+                _withdrawalLimitInWei
+            )
+        );
+    }
+
     function updateInactiveWallets() external {
         uint currentTime = block.timestamp;
+
         for (uint i = 0; i < wallets.length; i++) {
             if (
                 currentTime >
