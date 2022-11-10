@@ -8,7 +8,7 @@ contract WalletFactory is AutomationCompatibleInterface {
     Wallet[] wallets;
     uint public immutable interval;
     uint public lastTimeStamp;
-    uint public counter;
+    uint public counter; // For testing
 
     constructor(uint updateInterval) {
         interval = updateInterval;
@@ -30,6 +30,7 @@ contract WalletFactory is AutomationCompatibleInterface {
         );
     }
 
+    // Runs off-chain to determine if performUpkeep should be executed on-chain
     function checkUpkeep(bytes calldata)
         external
         view
@@ -52,9 +53,9 @@ contract WalletFactory is AutomationCompatibleInterface {
                     wallets[i].getLastActiveTime() +
                         (wallets[i].getInactivePeriodInDays() * 1 days)
                 ) {
-                    // wallets[i].getPrimaryWalletAddress().transfer(
-                    //     wallets[i].getBalance()
-                    // );
+                    wallets[i].getPrimaryWalletAddress().transfer(
+                        wallets[i].getBalance()
+                    );
                 }
             }
         }
