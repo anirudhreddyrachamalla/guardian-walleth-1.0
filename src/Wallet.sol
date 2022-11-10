@@ -94,7 +94,7 @@ contract Wallet {
         return inactivePeriodInDays;
     }
 
-    function getPrimaryWalletAddress() public view returns (address) {
+    function getPrimaryWalletAddress() public view returns (address payable) {
         return primaryWalletAddress;
     }
 
