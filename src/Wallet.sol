@@ -2,8 +2,8 @@
 pragma solidity 0.8.14;
 
 contract Wallet {
-    address payable public owner;
-    address payable public primaryWalletAddress;
+    address payable owner;
+    address payable primaryWalletAddress;
     uint inactivePeriodInDays;
     uint withdrawalLimitInWei;
     uint lastActiveTime;
@@ -88,5 +88,13 @@ contract Wallet {
         updateLastActiveTime
     {
         locked = _locked;
+    }
+
+    function getLastActiveTime view returns (uint) {
+        return lastActiveTime;
+    }
+
+    function getInactivePeriodInDays view returns(uint) {
+        return inactivePeriodInDays;
     }
 }
