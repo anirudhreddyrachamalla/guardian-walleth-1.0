@@ -35,13 +35,18 @@ contract WalletFactory is AutomationCompatibleInterface {
         external
         view
         override
-        returns (bool upkeepNeeded, bytes memory performData)
+        returns (
+            bool upkeepNeeded,
+            bytes memory /* performData */
+        )
     {
         upkeepNeeded = (block.timestamp - lastTimeStamp) > interval;
     }
 
-    function performUpkeep(bytes calldata performData) external override {
-        // Chailink recommends we revalidate the upkeep in the performUpkeep function
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
+        // Chainlink recommends we revalidate the upkeep in the performUpkeep function
         if ((block.timestamp - lastTimeStamp) > interval) {
             lastTimeStamp = block.timestamp;
 
