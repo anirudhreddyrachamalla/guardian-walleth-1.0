@@ -175,7 +175,7 @@ contract SmartWallet {
     
     function fetchGuardianData()public view returns (GuardianUIData[] memory){
         address[] memory existingGuardians = wallets[msg.sender].socialRecovery.fetchExistingList();
-        GuardianUIData[] memory result;
+        GuardianUIData[3] memory result;
         for(uint i;i< existingGuardians.length;i++){
             result[i] = GuardianUIData(existingGuardians[i], wallets[msg.sender].socialRecovery.fetchGuardianStatus(existingGuardians[i]));
         }

@@ -78,7 +78,7 @@ contract MultiSigWallet{
     }
 
     function fetchTxData()public view returns (uint, uint, uint){
-        return (numOfConfirmationsRequired, 1,1);
+        return (numOfConfirmationsRequired, 180,1000000);
     }
 
     function getNumberOfConfirmationsDone(uint _txIndex) external view returns(uint){
@@ -134,6 +134,7 @@ contract MultiSigWallet{
     }
 
     function publishTransaction(uint _txIndex) external {
+        //TODO: check for sufficient balance.
         //require(transactions[_txIndex].confirmationsDone>= numOfConfirmationsRequired, "Need more approvals");
         (bool sent, ) = transactions[_txIndex].to.call{value: transactions[_txIndex].amount}(transactions[_txIndex].data);
         require(sent, "Failed to send Ether");
