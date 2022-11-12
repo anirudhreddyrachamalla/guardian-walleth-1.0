@@ -44,7 +44,6 @@ contract SocialRecovery {
     }
 
     /* External Functions */
-
     function castVote(address newOwnerAddress) external {
         require(guardians[msg.sender].exists, "Only Guardian can cast vote");
         require(isGuardianEligibleToVote(), "Guardian need to be activated to participate in voting");
@@ -67,6 +66,16 @@ contract SocialRecovery {
         guardians[newGuardian].exists = true;
         guardians[newGuardian].activateTime = block.timestamp + 1 days;
 
+    }
+
+    function addGuardian(address newGuardianAddress) external {
+        require(guardians[newGuardianAddress].activateTime < block.timestamp, "Guardian not yet activate to Vote");
+        numActiveGuardians +=1;
+        activatedGuardianList.push(newGuardianAddress);
+        guardians[newGuardianAddress].activateTime = 0;
+        guardians[newGuardianAddress].activated = true;
+        guardians[newGuardianAddress].index = numActiveGuardians -1;
+        
     }
 
     function initiateGuardianRemoval(address removeGuardianAddress) external onlyOwner {
@@ -94,22 +103,7 @@ contract SocialRecovery {
     /** Internal Functions */
 
     function isGuardianEligibleToVote() internal returns(bool isEligible){
-        if(guardians[msg.sender].activated){
-            return true;
-        }else{
-            require(guardians[msg.sender].activateTime < block.timestamp, "Guardian not yet activate to Vote");
-            activateGuardian(msg.sender);
-            return true;
-        }
-    }
-
-    function activateGuardian(address newGuardianAddress) internal {
-        numActiveGuardians +=1;
-        activatedGuardianList.push(newGuardianAddress);
-        guardians[newGuardianAddress].activateTime = 0;
-        guardians[newGuardianAddress].activated = true;
-        guardians[newGuardianAddress].index = numActiveGuardians -1;
-        
+        return guardians[msg.sender].activated;
     }
 
     function setNewOwner(address newOwnerAddress) internal{

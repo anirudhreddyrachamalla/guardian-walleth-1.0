@@ -133,4 +133,7 @@ contract MultiSigWallet{
         transactions[_txIndex].executed=true;
         emit TransactionCompletelySucceeded(owner,transactions[_txIndex].amount);
     }
+
+    //TODO: adding and removing approvers
+    
 }
