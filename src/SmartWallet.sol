@@ -56,7 +56,7 @@ contract SmartWallet {
         guardingAddresses[_guardians[i]].push(msg.sender);
         emit GuardianAdded(msg.sender, _guardians[i]);
        }
-       MultiSigWallet mWallet = new MultiSigWallet(_numConfirmationsRequired, _approvers);
+       MultiSigWallet mWallet = new MultiSigWallet(_numConfirmationsRequired, _approvers, _inactivePeriod, _transactionLimit);
        for (uint i = 0; i < _approvers.length; i++) {
         approvingAddresses[_approvers[i]].push(msg.sender);
         emit ApproverAdded(msg.sender, _approvers[i]);
@@ -175,7 +175,7 @@ contract SmartWallet {
     
     function fetchGuardianData()public view returns (GuardianUIData[] memory){
         address[] memory existingGuardians = wallets[msg.sender].socialRecovery.fetchExistingList();
-        GuardianUIData[] memory result;
+        GuardianUIData[3] memory result;
         for(uint i;i< existingGuardians.length;i++){
             result[i] = GuardianUIData(existingGuardians[i], wallets[msg.sender].socialRecovery.fetchGuardianStatus(existingGuardians[i]));
         }
