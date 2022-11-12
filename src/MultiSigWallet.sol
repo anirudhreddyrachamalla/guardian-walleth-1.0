@@ -144,6 +144,10 @@ contract MultiSigWallet{
         return numOfConfirmationsRequired;
     }
 
+    function getTransaction(uint _txIndex) public view returns(address to, uint amount){
+        return (transactions[_txIndex].to, transactions[_txIndex].amount);
+    }
+
     //TODO: adding and removing approvers
 
 }

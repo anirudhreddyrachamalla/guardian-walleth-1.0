@@ -201,5 +201,10 @@ contract SmartWallet {
         return address(wallets[msg.sender].multiSigWallet);
     }
 
+    function getTransaction(uint _txIndex) external view returns(uint,address){
+        (address to, uint amount)= wallets[msg.sender].multiSigWallet.getTransaction(_txIndex);
+        return ( amount, to);
+    }
+
     
 }
