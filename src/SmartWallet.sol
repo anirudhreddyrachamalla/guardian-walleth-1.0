@@ -169,11 +169,6 @@ contract SmartWallet {
         addressArray.pop();
     }
     
-    function getTransaction(uint _txIndex) external view returns(uint,address){
-        Transaction transactionAtIndex = wallets[msg.sender].multiSigWallet.transactions[_txIndex];
-        return (transactionAtIndex.to,transactionAtIndex.amount)
-    }
-    
     
 //-----------------Call on Login ----------------------------------------
 
