@@ -197,5 +197,9 @@ contract SmartWallet {
         return guardingAddresses[msg.sender];
     }
 
+    function fetchMultiSig() public view returns (address walletAddress){
+        return address(wallets[msg.sender].multiSigWallet);
+    }
+
     
 }

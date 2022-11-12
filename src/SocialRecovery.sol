@@ -17,12 +17,6 @@ contract SocialRecovery {
     mapping (address => uint) newOwnerVotings;
     mapping(address => address) guardianVoteInfo;
     uint numActiveGuardians;
-    // enum WalletState {
-    //     None,
-    //     RecoveryPhase,
-    //     NonRecoveryPhase
-    // }
-    // WalletState currentState;
 
     event CreateWallet();
     event SuccessFullVote();
@@ -41,7 +35,6 @@ contract SocialRecovery {
             guardians[_guardians[i]].activated = true;
             guardians[_guardians[i]].index = i;
         }
-        //currentState = WalletState.NonRecoveryPhase;
         owner = msg.sender;
         emit CreateWallet();
     }

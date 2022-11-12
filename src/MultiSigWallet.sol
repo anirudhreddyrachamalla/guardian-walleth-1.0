@@ -64,9 +64,9 @@ contract MultiSigWallet{
         bool isTransactionInitiatedByOwner = owner==tx.origin;//Doublt: does this make our contract more vulnerable?
         require(isTransactionInitiatedByOwner,"Only owner can initaite a transaction");
 
-        uint contractBalance = address(this).balance;
-        bool hasEnoughContractBalance = contractBalance >= _amount;
-        require(hasEnoughContractBalance,"Not Enough Money in your wallet");
+        // uint contractBalance = address(this).balance;
+        // bool hasEnoughContractBalance = contractBalance >= _amount;
+        // require(hasEnoughContractBalance,"Not Enough Money in your wallet");
 
         transactions.push(Transaction(_txIndex,_to,_amount, block.timestamp,1,_data,false, false));
         isTransactionConfirmed[_txIndex][msg.sender] = true;
@@ -134,6 +134,7 @@ contract MultiSigWallet{
     }
 
     function publishTransaction(uint _txIndex) external {
+        //require(transactions[_txIndex].confirmationsDone>= numOfConfirmationsRequired, "Need more approvals");
         (bool sent, ) = transactions[_txIndex].to.call{value: transactions[_txIndex].amount}(transactions[_txIndex].data);
         require(sent, "Failed to send Ether");
         transactions[_txIndex].executed=true;
