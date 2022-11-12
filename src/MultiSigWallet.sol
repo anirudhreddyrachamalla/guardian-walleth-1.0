@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 contract MultiSigWallet{
     uint public immutable numOfConfirmationsRequired;
+    address[] approversData;
     uint txIndex;
     struct Transaction{
         uint transactionIndex;
@@ -12,6 +13,7 @@ contract MultiSigWallet{
         uint confirmationsDone;
         bytes data;
         bool executed;
+        bool isDeleted;
     }
 
     mapping(address=>bool) isApprover;
@@ -19,16 +21,11 @@ contract MultiSigWallet{
     address public owner;
     Transaction [] public transactions;
 
-    event MoneyDeposited(address _depositor,uint _amount);
-    event TransactionInitiated(address _owner,address _to,uint _amount);
-    event TransactionPartiallyApproved(address _owner,uint _amount,uint _confirmationsDone );
-    event TransactionCompletelyApproved(uint _amount);
-    event TransactionPartiallyRevoked(uint _txIndex,address owner);
-    event TransactionCompletelyRevoked(uint _txIndex,uint _amount);
-    event TransactionCompletelySucceeded(address _owner,uint _amount);
+    event MoneyReceived(address receiver, address sender, uint amount);
+    event MoneySent(address sender, address receiver, uint amount);
 
     constructor(uint _numOfConfirmationsRequired,address[] memory _approvers) {
-        owner = msg.sender;
+        owner = tx.origin;
         isApprover[owner]=true;
         if(_numOfConfirmationsRequired>0){
             bool isNumberOfConfirmationsRequiredValid =  _numOfConfirmationsRequired>0 && _numOfConfirmationsRequired <= _approvers.length;
@@ -45,6 +42,7 @@ contract MultiSigWallet{
             }
         }
         numOfConfirmationsRequired = _numOfConfirmationsRequired;
+        approversData = _approvers;
     }
 
     modifier onlyMultiSig(){
@@ -56,37 +54,38 @@ contract MultiSigWallet{
         _;
     }
     receive() external payable{
-        emit MoneyDeposited(msg.sender,msg.value);
+        emit MoneyReceived(address(this), msg.sender, msg.value);
+        emit MoneySent(msg.sender, address(this), msg.value);
     }
 
-    function deposit() external payable {
-        emit MoneyDeposited(msg.sender,msg.value);
-    }
-
-    function initiateTransaction(address _to,uint _amount,bytes calldata _data) external {
+    function initiateTransaction(address _to,uint _amount,bytes calldata _data) external returns(uint) {
 
         uint _txIndex = txIndex;
-        bool isTransactionInitiatedByOwner = owner==msg.sender;
+        bool isTransactionInitiatedByOwner = owner==tx.origin;//Doublt: does this make our contract more vulnerable?
         require(isTransactionInitiatedByOwner,"Only owner can initaite a transaction");
 
         uint contractBalance = address(this).balance;
         bool hasEnoughContractBalance = contractBalance >= _amount;
         require(hasEnoughContractBalance,"Not Enough Money in your wallet");
 
-        transactions.push(Transaction(_txIndex,_to,_amount, block.timestamp,1,_data,false));
+        transactions.push(Transaction(_txIndex,_to,_amount, block.timestamp,1,_data,false, false));
         isTransactionConfirmed[_txIndex][msg.sender] = true;
+        return _txIndex;
+    }
 
-        if(numOfConfirmationsRequired==0){ // not a multiSig wallet
-            publishTransaction(_txIndex);
-        }else{
-            emit TransactionInitiated(msg.sender,_to,_amount);
-        }
+    function fetchApproverData()public view returns (address[] memory){
+        return approversData;
+    }
+
+    function fetchTxData()public view returns (uint, uint, uint){
+        return (numOfConfirmationsRequired, 1,1);
     }
 
     function getNumberOfConfirmationsDone(uint _txIndex) external view returns(uint){
         return transactions[_txIndex].confirmationsDone;
     }
-    function approveTransaction(uint _txIndex) external onlyMultiSig {
+    function approveTransaction(uint _txIndex) external onlyMultiSig returns(uint) {
+        //TODO: check for deleted transaction
         require(isApprover[msg.sender]==true,"Not an approver");
 
         bool hasTransactionInitiated = transactions[_txIndex].initiationTime >0;
@@ -98,39 +97,52 @@ contract MultiSigWallet{
         isTransactionConfirmed[_txIndex][msg.sender]=true;
         transactions[_txIndex].confirmationsDone++;
 
-        emit TransactionPartiallyApproved(msg.sender,transactions[_txIndex].amount,transactions[_txIndex].confirmationsDone);
-        if(transactions[_txIndex].confirmationsDone==numOfConfirmationsRequired){
-            publishTransaction(_txIndex); 
-        }
+        return transactions[_txIndex].confirmationsDone;
+
+        // emit TransactionPartiallyApproved(msg.sender,transactions[_txIndex].amount,transactions[_txIndex].confirmationsDone);
+        // if(transactions[_txIndex].confirmationsDone==numOfConfirmationsRequired){
+        //     publishTransaction(_txIndex); 
+        // }
     }
 
     function getStatusOfYourApproval(uint _txIndex) external view returns(bool) {
         return isTransactionConfirmed[_txIndex][msg.sender];
     }
 
-    function revokeTransaction(uint _txIndex) external onlyMultiSig{
-
-        require(isApprover[msg.sender]==true,"Not an owner");
+    function revokeTransaction(uint _txIndex) external onlyMultiSig returns(uint){
+        //TODO: check for deleted transaction
+        require(isApprover[tx.origin ]==true,"Not an approver");
 
         bool hasTransactionInitiated = transactions[_txIndex].initiationTime >0;
         require(hasTransactionInitiated,"No transaction to revoke");
 
-        bool hasAlreadyApproved = isTransactionConfirmed[_txIndex][msg.sender];
+        bool hasAlreadyApproved = isTransactionConfirmed[_txIndex][tx.origin];
         require(hasAlreadyApproved,"You have NOT approved the transaction YET");
 
         isTransactionConfirmed[_txIndex][msg.sender]=false;
         transactions[_txIndex].confirmationsDone--;
-        emit TransactionPartiallyRevoked(_txIndex,msg.sender);
+        return transactions[_txIndex].confirmationsDone;
+        // emit TransactionPartiallyRevoked(_txIndex,msg.sender);
 
-        if(transactions[_txIndex].confirmationsDone==0){ // Some modifications might be needed here
-            emit TransactionCompletelyRevoked(_txIndex,transactions[_txIndex].amount);
-        }
+        // if(transactions[_txIndex].confirmationsDone==0){ // Some modifications might be needed here
+        //     emit TransactionCompletelyRevoked(_txIndex,transactions[_txIndex].amount);
+        // }
     }
 
-    function publishTransaction(uint _txIndex) internal {
+    function deleteTransaction(uint _txIndex) external{
+        transactions[_txIndex].isDeleted = true;
+    }
+
+    function publishTransaction(uint _txIndex) external {
         (bool sent, ) = transactions[_txIndex].to.call{value: transactions[_txIndex].amount}(transactions[_txIndex].data);
         require(sent, "Failed to send Ether");
         transactions[_txIndex].executed=true;
-        emit TransactionCompletelySucceeded(owner,transactions[_txIndex].amount);
     }
+
+    function getNumberOfConfirmations() view external returns(uint){
+        return numOfConfirmationsRequired;
+    }
+
+    //TODO: adding and removing approvers
+
 }
