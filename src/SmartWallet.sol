@@ -21,8 +21,7 @@ contract SmartWallet {
     mapping (address => address[]) approvalsRequired;
     mapping (address => address[]) guardingAddresses;
 
-    //socaial recovery events
-    event WalletCreated(address creator, address walletAddress);
+    //social recovery events
     event VoteCasted(address senderAddress, address walletOwner);
     event VoteRevoked(address senderAddress, address walletOwner);
     event GuardianAdditionInitiated(address sender, address guardian);
@@ -31,7 +30,11 @@ contract SmartWallet {
     event GuardianRemoved(address sender, address guardian);
 
     //multi sig events
-
+    event WalletCreated(address creator, address walletAddress);
+    event ApproverAdded(address walletOwner, address approver);
+    event TransactionInitiated(address from, address to, uint amount);
+    event TransactionApproved(address from, address owner, uint txIndex);
+    event TransactionRevoked(address from, address owner, uint txIndex);
     function createNewSmartWallet(address[] memory _guardians, 
     address[] memory _approvers, 
     uint _numConfirmationsRequired,
@@ -41,13 +44,71 @@ contract SmartWallet {
        SocialRecovery sRecovery = new SocialRecovery(_guardians);
        for (uint i = 0; i < _guardians.length; i++) {
         guardingAddresses[_guardians[i]].push(msg.sender);
+        emit GuardianAdded(msg.sender, _guardian[i]);
        }
        MultiSigWallet mWallet = new MultiSigWallet(_numConfirmationsRequired, _approvers);
        for (uint i = 0; i < _approvers.length; i++) {
         approvalsRequired[_approvers[i]].push(msg.sender);
+        emit ApproverAdded(msg.sender, _approvers[i]);
        }
        wallets[msg.sender] = RecoveryWallet(sRecovery, mWallet);
        emit WalletCreated(msg.sender, address(mWallet));
+       //TODO: Store this mwallet address and listen to events in UI.
+    }
+
+    // MultiSigWallet
+    function initiateTransaction(address _to,uint _amount,bytes calldata _data) public {
+        uint txIndex = wallets[msg.sender].multiSigWallet.initiateTransaction(_to, _amount, _data);
+        uint numConfirmationsRequired = wallets[msg.sender].multiSigWallet.getNumberOfConfirmations();
+        emit TransactionStatus(msg.sender, _to, _amount, 1, numConfirmationsRequired);
+        address[] approvers = wallets[msg.sender].multiSigWallet.getApprovers();
+        for(uint i;i<approvers.length;i++){
+            emit ApprovalRequired(approvers[i], msg.sender,_to, _amount, txIndex);
+        }
+        //TODO: handle no wallet present for a user case.
+        //Doubt: can we make this view? this doesn't the state of this contract but it does change of overall blockchain
+    }
+
+    function getNumberOfConfirmationsDone(uint _txIndex) external view returns(uint){
+        uint result = wallets[msg.sender].multiSigWallet.getNumberOfConfirmationsDone(_txIndex);
+        return result;
+    }
+
+    function approveTransaction(uint _txIndex, address _owner) external {
+        uint numConfirmationsDone = wallets[_owner].multiSigWallet.approveTransaction(_txIndex);
+        uint numConfirmationsRequired = wallets[_owner].multiSigWallet.getNumberOfConfirmations();
+        emit TransactionApproved(msg.sender, _owner, _txIndex);
+        emit TransactionStatus(_owner, _txIndex, numConfirmationsDone, numConfirmationsRequired);
+    }
+
+    function getApprovalStatus(uint _txIndex) external view returns(bool){
+         bool result = wallets[msg.sender].multiSigWallet.getStatusOfYourApproval(_txIndex);
+         return result;
+    }
+
+    function revokeTransaction(uint _txIndex, address _owner) external {
+        uint numConfirmationsDone = wallets[_owner].multiSigWallet.revokeTransaction(_txIndex);
+        uint numConfirmationsRequired = wallets[_owner].multiSigWallet.getNumberOfConfirmations();
+        emit TransactionRevoked(msg.sender, _owner, _txIndex);
+        emit TransactionStatus(_owner, _txIndex, numConfirmationsDone, numConfirmationsRequired);
+    }
+
+    function deleteTransaction(uint _txIndex) external {
+        wallets[msg.sender].multiSigWallet.deleteTrasaction(_txIndex);
+        emit TransactionDeleted(msg.sender, _to, _amount, _txIndex);
+        address[] approvers = wallets[msg.sender].multiSigWallet.getApprovers();
+        for(uint i;i<approvers.length;i++){
+            emit ApprovalNotRequired(approvers[i], msg.sender,_to, _amount, txIndex);
+        }
+    }
+
+    function publishTransaction(uint _txIndex)  returns () {
+        wallets[msg.sender].multiSigWallet.publishTrasaction(_txIndex);
+        emit TransactionCompleted(msg.sender, _to, _amount, _txIndex);
+        address[] approvers = wallets[msg.sender].multiSigWallet.getApprovers();
+        for(uint i;i<approvers.length;i++){
+            emit ApprovalNotRequired(approvers[i], msg.sender,_to, _amount, txIndex);
+        }
     }
 
     // SocialRecovery
@@ -97,26 +158,7 @@ contract SmartWallet {
         addressArray[i] = addressArray[length-1];
         addressArray.pop();
     }
-    // MultiSigWallet
-    function initiateTransaction(address _to,uint _amount,bytes calldata _data) public {
-        wallets[msg.sender].multiSigWallet.initiateTransaction(_to, _amount, _data);
-    }
 
-    function getNumberOfConfirmationsDone(uint _txIndex) external view returns(uint){
-        uint result = wallets[msg.sender].multiSigWallet.getNumberOfConfirmationsDone(_txIndex);
-        return result;
-    }
-
-    function approveTransaction(uint _txIndex) external {
-        wallets[msg.sender].multiSigWallet.approveTransaction(_txIndex);
-    }
-
-    function getApprovalStatus(uint _txIndex) external view returns(bool){
-         bool result = wallets[msg.sender].multiSigWallet.getStatusOfYourApproval(_txIndex);
-         return result;
-    }
-
-    function revokeTransaction(uint _txIndex) external {
-        wallets[msg.sender].multiSigWallet.revokeTransaction(_txIndex);
-    }
+    //TODO: Add login functionality
+    
 }
