@@ -20,11 +20,13 @@ contract MultiSigWallet{
     mapping(uint=>mapping(address=>bool)) isTransactionConfirmed;
     address public owner;
     Transaction [] public transactions;
+    uint inactivePeriod;
+    uint transactionLimit;
 
     event MoneyReceived(address receiver, address sender, uint amount);
     event MoneySent(address sender, address receiver, uint amount);
 
-    constructor(uint _numOfConfirmationsRequired,address[] memory _approvers) {
+    constructor(uint _numOfConfirmationsRequired,address[] memory _approvers, uint _inactivePeriod,uint _transactionLimit) {
         owner = tx.origin;
         isApprover[owner]=true;
         if(_numOfConfirmationsRequired>0){
@@ -43,6 +45,8 @@ contract MultiSigWallet{
         }
         numOfConfirmationsRequired = _numOfConfirmationsRequired;
         approversData = _approvers;
+        inactivePeriod = _inactivePeriod;
+        transactionLimit = _transactionLimit;
     }
 
     modifier onlyMultiSig(){
@@ -78,7 +82,7 @@ contract MultiSigWallet{
     }
 
     function fetchTxData()public view returns (uint, uint, uint){
-        return (numOfConfirmationsRequired, 180,1000000);
+        return (numOfConfirmationsRequired, inactivePeriod,transactionLimit);
     }
 
     function getNumberOfConfirmationsDone(uint _txIndex) external view returns(uint){

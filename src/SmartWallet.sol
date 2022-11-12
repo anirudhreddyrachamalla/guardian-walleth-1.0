@@ -56,7 +56,7 @@ contract SmartWallet {
         guardingAddresses[_guardians[i]].push(msg.sender);
         emit GuardianAdded(msg.sender, _guardians[i]);
        }
-       MultiSigWallet mWallet = new MultiSigWallet(_numConfirmationsRequired, _approvers);
+       MultiSigWallet mWallet = new MultiSigWallet(_numConfirmationsRequired, _approvers, _inactivePeriod, _transactionLimit);
        for (uint i = 0; i < _approvers.length; i++) {
         approvingAddresses[_approvers[i]].push(msg.sender);
         emit ApproverAdded(msg.sender, _approvers[i]);
