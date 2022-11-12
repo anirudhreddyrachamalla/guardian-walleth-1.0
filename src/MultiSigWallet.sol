@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 contract MultiSigWallet{
     uint public immutable numOfConfirmationsRequired;
+    address[] approversData;
     uint txIndex;
     struct Transaction{
         uint transactionIndex;
@@ -19,6 +20,9 @@ contract MultiSigWallet{
     mapping(uint=>mapping(address=>bool)) isTransactionConfirmed;
     address public owner;
     Transaction [] public transactions;
+
+    event MoneyReceived(address receiver, address sender, uint amount);
+    event MoneySent(address sender, address receiver, uint amount);
 
     constructor(uint _numOfConfirmationsRequired,address[] memory _approvers) {
         owner = tx.origin;
@@ -38,6 +42,7 @@ contract MultiSigWallet{
             }
         }
         numOfConfirmationsRequired = _numOfConfirmationsRequired;
+        approversData = _approvers;
     }
 
     modifier onlyMultiSig(){
@@ -53,7 +58,7 @@ contract MultiSigWallet{
         emit MoneySent(msg.sender, address(this), msg.value);
     }
 
-    function initiateTransaction(address _to,uint _amount,bytes calldata _data) external {
+    function initiateTransaction(address _to,uint _amount,bytes calldata _data) external returns(uint) {
 
         uint _txIndex = txIndex;
         bool isTransactionInitiatedByOwner = owner==tx.origin;//Doublt: does this make our contract more vulnerable?
@@ -63,9 +68,17 @@ contract MultiSigWallet{
         bool hasEnoughContractBalance = contractBalance >= _amount;
         require(hasEnoughContractBalance,"Not Enough Money in your wallet");
 
-        transactions.push(Transaction(_txIndex,_to,_amount, block.timestamp,1,_data,false));
+        transactions.push(Transaction(_txIndex,_to,_amount, block.timestamp,1,_data,false, false));
         isTransactionConfirmed[_txIndex][msg.sender] = true;
         return _txIndex;
+    }
+
+    function fetchApproverData()public view returns (address[] memory){
+        return approversData;
+    }
+
+    function fetchTxData()public view returns (uint, uint, uint){
+        return (numOfConfirmationsRequired, 1,1);
     }
 
     function getNumberOfConfirmationsDone(uint _txIndex) external view returns(uint){
@@ -124,6 +137,10 @@ contract MultiSigWallet{
         (bool sent, ) = transactions[_txIndex].to.call{value: transactions[_txIndex].amount}(transactions[_txIndex].data);
         require(sent, "Failed to send Ether");
         transactions[_txIndex].executed=true;
+    }
+
+    function getNumberOfConfirmations() view external returns(uint){
+        return numOfConfirmationsRequired;
     }
 
     //TODO: adding and removing approvers

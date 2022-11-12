@@ -17,8 +17,13 @@ contract SmartWallet {
         uint amount;
     }
 
+    struct GuardianUIData{
+        address guardianAddress;
+        bool activated;
+    }
+
     mapping(address => RecoveryWallet) wallets;
-    mapping (address => address[]) approvalsRequired;
+    mapping (address => address[]) approvingAddresses;
     mapping (address => address[]) guardingAddresses;
 
     //social recovery events
@@ -32,9 +37,14 @@ contract SmartWallet {
     //multi sig events
     event WalletCreated(address creator, address walletAddress);
     event ApproverAdded(address walletOwner, address approver);
+    event ApprovalRequired(address approver, address initiator, address receiver, uint _amount,uint txIndex);
     event TransactionInitiated(address from, address to, uint amount);
     event TransactionApproved(address from, address owner, uint txIndex);
     event TransactionRevoked(address from, address owner, uint txIndex);
+    event TransactionStatus(address _owner, uint _txIndex, uint numConfirmationsDone, uint numConfirmationsRequired);
+    event TransactionDeleted(address sender, uint _txIndex);
+    event ApprovalNotRequired(address approver, uint txIndex);
+    event TransactionCompleted(address sender, uint _txIndex);
     function createNewSmartWallet(address[] memory _guardians, 
     address[] memory _approvers, 
     uint _numConfirmationsRequired,
@@ -44,11 +54,11 @@ contract SmartWallet {
        SocialRecovery sRecovery = new SocialRecovery(_guardians);
        for (uint i = 0; i < _guardians.length; i++) {
         guardingAddresses[_guardians[i]].push(msg.sender);
-        emit GuardianAdded(msg.sender, _guardian[i]);
+        emit GuardianAdded(msg.sender, _guardians[i]);
        }
        MultiSigWallet mWallet = new MultiSigWallet(_numConfirmationsRequired, _approvers);
        for (uint i = 0; i < _approvers.length; i++) {
-        approvalsRequired[_approvers[i]].push(msg.sender);
+        approvingAddresses[_approvers[i]].push(msg.sender);
         emit ApproverAdded(msg.sender, _approvers[i]);
        }
        wallets[msg.sender] = RecoveryWallet(sRecovery, mWallet);
@@ -60,8 +70,8 @@ contract SmartWallet {
     function initiateTransaction(address _to,uint _amount,bytes calldata _data) public {
         uint txIndex = wallets[msg.sender].multiSigWallet.initiateTransaction(_to, _amount, _data);
         uint numConfirmationsRequired = wallets[msg.sender].multiSigWallet.getNumberOfConfirmations();
-        emit TransactionStatus(msg.sender, _to, _amount, 1, numConfirmationsRequired);
-        address[] approvers = wallets[msg.sender].multiSigWallet.getApprovers();
+        emit TransactionStatus(msg.sender, txIndex, 1, numConfirmationsRequired);
+        address[] memory approvers = wallets[msg.sender].multiSigWallet.fetchApproverData();
         for(uint i;i<approvers.length;i++){
             emit ApprovalRequired(approvers[i], msg.sender,_to, _amount, txIndex);
         }
@@ -94,20 +104,20 @@ contract SmartWallet {
     }
 
     function deleteTransaction(uint _txIndex) external {
-        wallets[msg.sender].multiSigWallet.deleteTrasaction(_txIndex);
-        emit TransactionDeleted(msg.sender, _to, _amount, _txIndex);
-        address[] approvers = wallets[msg.sender].multiSigWallet.getApprovers();
+        wallets[msg.sender].multiSigWallet.deleteTransaction(_txIndex);
+        emit TransactionDeleted(msg.sender, _txIndex);
+        address[] memory approvers = wallets[msg.sender].multiSigWallet.fetchApproverData();
         for(uint i;i<approvers.length;i++){
-            emit ApprovalNotRequired(approvers[i], msg.sender,_to, _amount, txIndex);
+            emit ApprovalNotRequired(approvers[i], _txIndex);
         }
     }
 
-    function publishTransaction(uint _txIndex)  returns () {
-        wallets[msg.sender].multiSigWallet.publishTrasaction(_txIndex);
-        emit TransactionCompleted(msg.sender, _to, _amount, _txIndex);
-        address[] approvers = wallets[msg.sender].multiSigWallet.getApprovers();
+    function publishTransaction(uint _txIndex) external {
+        wallets[msg.sender].multiSigWallet.publishTransaction(_txIndex);
+        emit TransactionCompleted(msg.sender, _txIndex);
+        address[] memory approvers = wallets[msg.sender].multiSigWallet.fetchApproverData();
         for(uint i;i<approvers.length;i++){
-            emit ApprovalNotRequired(approvers[i], msg.sender,_to, _amount, txIndex);
+            emit ApprovalNotRequired(approvers[i], _txIndex);
         }
     }
 
@@ -159,6 +169,33 @@ contract SmartWallet {
         addressArray.pop();
     }
 
-    //TODO: Add login functionality
+//-----------------Call on Login ----------------------------------------
+
+    
+    function fetchGuardianData()public view returns (GuardianUIData[] memory){
+        address[] memory existingGuardians = wallets[msg.sender].socialRecovery.fetchExistingList();
+        GuardianUIData[] memory result;
+        for(uint i;i< existingGuardians.length;i++){
+            result[i] = GuardianUIData(existingGuardians[i], wallets[msg.sender].socialRecovery.fetchGuardianStatus(existingGuardians[i]));
+        }
+        return result;
+    }
+
+    function fetchApproverData()public view returns (address[] memory){
+        return wallets[msg.sender].multiSigWallet.fetchApproverData();
+    }
+
+    function fetchTxData()public view returns(uint, uint, uint){
+        return wallets[msg.sender].multiSigWallet.fetchTxData();
+    }
+
+    function fetchApproversOf()public view returns (address[] memory){
+        return approvingAddresses[msg.sender];
+    }
+
+    function fetchGuardingAddresses()public view returns (address[] memory){
+        return guardingAddresses[msg.sender];
+    }
+
     
 }
