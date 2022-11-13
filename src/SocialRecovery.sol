@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity 0.8.17;
 
 contract SocialRecovery {
     struct GuardianInfo {
@@ -23,7 +23,7 @@ contract SocialRecovery {
     event GuardianAdded();
 
      modifier onlyOwner() {
-        require(owner == msg.sender, "Only Owner has entitlements to perform this action");
+        require(owner == tx.origin, "Only Owner has entitlements to perform this action");
         _;
      }
     constructor(address[] memory _guardians) public {
@@ -35,19 +35,19 @@ contract SocialRecovery {
             guardians[_guardians[i]].activated = true;
             guardians[_guardians[i]].index = i;
         }
-        owner = msg.sender;
+        owner = tx.origin;
         emit CreateWallet();
     }
 
     /* External Functions */
     function castVote(address newOwnerAddress) external returns(bool) {
         bool isOwnerChanged;
-        require(guardians[msg.sender].exists, "Only Guardian can cast vote");
+        require(guardians[tx.origin].exists, "Only Guardian can cast vote");
         require(isGuardianEligibleToVote(), "Guardian need to be activated to participate in voting");
-        require(guardianVoteInfo[msg.sender] == address(0)  , "Already casted vote, to cast a new vote delete the previous vote");
+        require(guardianVoteInfo[tx.origin] == address(0)  , "Already casted vote, to cast a new vote delete the previous vote");
         require(owner != newOwnerAddress, "New owner address matches the old owner");
         newOwnerVotings[newOwnerAddress] +=1;
-        guardianVoteInfo[msg.sender] = newOwnerAddress;
+        guardianVoteInfo[tx.origin] = newOwnerAddress;
         if (4 * newOwnerVotings[newOwnerAddress]>numActiveGuardians*3) {
             setNewOwner(newOwnerAddress);
             isOwnerChanged = true;
@@ -111,7 +111,7 @@ contract SocialRecovery {
     /** Internal Functions */
 
     function isGuardianEligibleToVote() internal view returns(bool isEligible){
-        return guardians[msg.sender].activated;
+        return guardians[tx.origin].activated;
     }
 
     function setNewOwner(address newOwnerAddress) internal{

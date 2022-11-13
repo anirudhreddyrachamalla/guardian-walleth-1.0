@@ -76,7 +76,7 @@ contract MultiSigWallet is Common{
         // require(hasEnoughContractBalance,"Not Enough Money in your wallet");
 
         transactions.push(Transaction(_txIndex,_to,_amount, block.timestamp,1,_data,false, false));
-        isTransactionConfirmed[_txIndex][msg.sender] = true;
+        isTransactionConfirmed[_txIndex][tx.origin] = true;
         return _txIndex;
     }
 
@@ -93,15 +93,15 @@ contract MultiSigWallet is Common{
     }
     function approveTransaction(uint _txIndex) external onlyMultiSig returns(uint) {
         //TODO: check for deleted transaction
-        require(isApprover[msg.sender]==true,"Not an approver");
+        require(isApprover[tx.origin]==true,"Not an approver");
 
         bool hasTransactionInitiated = transactions[_txIndex].initiationTime >0;
         require(hasTransactionInitiated,"Please initiate a new transaction");
 
-        bool hasAlreadyApproved = isTransactionConfirmed[_txIndex][msg.sender];
+        bool hasAlreadyApproved = isTransactionConfirmed[_txIndex][tx.origin];
         require(!hasAlreadyApproved,"You have already approved the transaction");
 
-        isTransactionConfirmed[_txIndex][msg.sender]=true;
+        isTransactionConfirmed[_txIndex][tx.origin]=true;
         transactions[_txIndex].confirmationsDone++;
 
         return transactions[_txIndex].confirmationsDone;
@@ -113,7 +113,7 @@ contract MultiSigWallet is Common{
     }
 
     function getStatusOfYourApproval(uint _txIndex) external view returns(bool) {
-        return isTransactionConfirmed[_txIndex][msg.sender];
+        return isTransactionConfirmed[_txIndex][tx.origin];
     }
 
     function revokeTransaction(uint _txIndex) external onlyMultiSig returns(uint){
@@ -126,7 +126,7 @@ contract MultiSigWallet is Common{
         bool hasAlreadyApproved = isTransactionConfirmed[_txIndex][tx.origin];
         require(hasAlreadyApproved,"You have NOT approved the transaction YET");
 
-        isTransactionConfirmed[_txIndex][msg.sender]=false;
+        isTransactionConfirmed[_txIndex][tx.origin]=false;
         transactions[_txIndex].confirmationsDone--;
         return transactions[_txIndex].confirmationsDone;
         // emit TransactionPartiallyRevoked(_txIndex,msg.sender);
@@ -169,7 +169,7 @@ contract MultiSigWallet is Common{
         for (uint i = 0; i < transactions.length; i++) {
             Transaction memory currTransaction = transactions[i];
             if(!currTransaction.executed && currTransaction.isDeleted){
-                result[i] = TransactionUIData(address(this), i, currTransaction.to, currTransaction.amount,isTransactionConfirmed[i][msg.sender]);
+                result[i] = TransactionUIData(address(this), i, currTransaction.to, currTransaction.amount,isTransactionConfirmed[i][tx.origin]);
             }
         }
         return result;
