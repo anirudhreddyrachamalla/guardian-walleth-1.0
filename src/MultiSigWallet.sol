@@ -8,6 +8,17 @@ contract MultiSigWallet is Common{
     address[] approversData;
     uint txIndex;
 
+    struct Transaction{
+        uint transactionIndex;
+        address to;
+        uint amount;
+        uint initiationTime;
+        uint confirmationsDone;
+        bytes data;
+        bool executed;
+        bool isDeleted;
+    }
+
     mapping(address=>bool) isApprover;
     mapping(uint=>mapping(address=>bool)) isTransactionConfirmed;
     address public owner;
