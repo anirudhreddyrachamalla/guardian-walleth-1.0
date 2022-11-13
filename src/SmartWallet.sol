@@ -3,18 +3,12 @@ pragma solidity 0.8.17;
 
 import "./MultiSigWallet.sol";
 import "./SocialRecovery.sol";
+import "./Common.sol";
 
-contract SmartWallet {
-
+contract SmartWallet is Common{
     struct RecoveryWallet{
         SocialRecovery socialRecovery;
         MultiSigWallet multiSigWallet;
-    }
-
-    struct Transaction{
-        uint id;
-        address to;
-        uint amount;
     }
 
     struct GuardianUIData{
@@ -175,7 +169,7 @@ contract SmartWallet {
     
     function fetchGuardianData()public view returns (GuardianUIData[] memory){
         address[] memory existingGuardians = wallets[msg.sender].socialRecovery.fetchExistingList();
-        GuardianUIData[3] memory result;
+        GuardianUIData[] memory result = new GuardianUIData[](existingGuardians.length);
         for(uint i;i< existingGuardians.length;i++){
             result[i] = GuardianUIData(existingGuardians[i], wallets[msg.sender].socialRecovery.fetchGuardianStatus(existingGuardians[i]));
         }
@@ -207,5 +201,20 @@ contract SmartWallet {
         return ( amount, to);
     }
 
-    
+    function fetchTransactionsRequiringApprovals() external view returns(TransactionUIData[] memory){
+        address[] memory childAccounts = approvingAddresses[msg.sender];
+        uint maxTxShow =10;
+        TransactionUIData[] memory result = new TransactionUIData[](maxTxShow);        
+        uint count;
+        for(uint i;i< childAccounts.length;i++){
+            TransactionUIData[] memory txArray = wallets[childAccounts[i]].multiSigWallet.getActiveTransactions();
+            for(uint j;j<txArray.length;j++){
+                result[count] = txArray[j];
+                count++;
+                if(count>=maxTxShow){
+                    return result;
+                } 
+            }
+        }
+    }
 }

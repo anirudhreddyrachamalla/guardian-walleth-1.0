@@ -1,20 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-contract MultiSigWallet{
+import "./Common.sol";
+
+contract MultiSigWallet is Common{
     uint public immutable numOfConfirmationsRequired;
     address[] approversData;
     uint txIndex;
-    struct Transaction{
-        uint transactionIndex;
-        address to;
-        uint amount;
-        uint initiationTime;
-        uint confirmationsDone;
-        bytes data;
-        bool executed;
-        bool isDeleted;
-    }
 
     mapping(address=>bool) isApprover;
     mapping(uint=>mapping(address=>bool)) isTransactionConfirmed;
@@ -151,6 +143,25 @@ contract MultiSigWallet{
 
     function getTransaction(uint _txIndex) public view returns(address to, uint amount){
         return (transactions[_txIndex].to, transactions[_txIndex].amount);
+    }
+
+    function getActiveTransactions() public view returns(TransactionUIData[] memory){
+        //front-end: need to check if amount==0 to filter out default values set.
+        uint count = 0;
+        for (uint i = 0; i < transactions.length; i++) {
+            Transaction memory currTransaction = transactions[i];
+            if(!currTransaction.executed && currTransaction.isDeleted){
+                count +=1;
+            }
+        }
+        TransactionUIData[] memory result = new TransactionUIData[](count);
+        for (uint i = 0; i < transactions.length; i++) {
+            Transaction memory currTransaction = transactions[i];
+            if(!currTransaction.executed && currTransaction.isDeleted){
+                result[i] = TransactionUIData(address(this), i, currTransaction.to, currTransaction.amount,isTransactionConfirmed[i][msg.sender]);
+            }
+        }
+        return result;
     }
 
     //TODO: adding and removing approvers
