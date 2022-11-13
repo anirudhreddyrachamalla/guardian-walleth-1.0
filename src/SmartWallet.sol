@@ -3,18 +3,12 @@ pragma solidity 0.8.17;
 
 import "./MultiSigWallet.sol";
 import "./SocialRecovery.sol";
+import "./Common.sol";
 
-contract SmartWallet {
-
+contract SmartWallet is Common{
     struct RecoveryWallet{
         SocialRecovery socialRecovery;
         MultiSigWallet multiSigWallet;
-    }
-
-    struct Transaction{
-        uint id;
-        address to;
-        uint amount;
     }
 
     struct GuardianUIData{
@@ -45,6 +39,7 @@ contract SmartWallet {
     event TransactionDeleted(address sender, uint _txIndex);
     event ApprovalNotRequired(address approver, uint txIndex);
     event TransactionCompleted(address sender, uint _txIndex);
+    event OwnerChanged(address guardian, address oldOwner, address newOwner);
     function createNewSmartWallet(address[] memory _guardians, 
     address[] memory _approvers, 
     uint _numConfirmationsRequired,
@@ -122,9 +117,15 @@ contract SmartWallet {
     }
 
     // SocialRecovery
-    function castRecoveryVote(address walletOwner, address _newOwnerAddress) public{
-       wallets[walletOwner].socialRecovery.castVote(_newOwnerAddress);
-       emit VoteCasted(msg.sender, walletOwner);
+    function castRecoveryVote(address oldWalletOwner, address _newOwnerAddress) public{
+       bool isOwnerChanged = wallets[oldWalletOwner].socialRecovery.castVote(_newOwnerAddress);
+       emit VoteCasted(msg.sender, oldWalletOwner);
+       if(isOwnerChanged){
+           address[] memory guardians = wallets[oldWalletOwner].socialRecovery.fetchExistingList();
+           for(uint i;i< guardians.length;i++){
+               emit OwnerChanged(guardians[i], oldWalletOwner, _newOwnerAddress);
+           }
+       }
     }
 
     //TODO: Function to fetch casted votes by a guardian when they try to login
@@ -139,8 +140,8 @@ contract SmartWallet {
         emit GuardianAdditionInitiated(msg.sender, _guardian);
     }
 
-    function addGuardian(address _guardian) public {
-        wallets[msg.sender].socialRecovery.addGuardian(_guardian);
+    function activateGuardian(address _guardian) public {
+        wallets[msg.sender].socialRecovery.activateGuardian(_guardian);
         guardingAddresses[_guardian].push(msg.sender);
         emit GuardianAdded(msg.sender, _guardian);
     }
@@ -175,7 +176,7 @@ contract SmartWallet {
     
     function fetchGuardianData()public view returns (GuardianUIData[] memory){
         address[] memory existingGuardians = wallets[msg.sender].socialRecovery.fetchExistingList();
-        GuardianUIData[3] memory result;
+        GuardianUIData[] memory result = new GuardianUIData[](existingGuardians.length);
         for(uint i;i< existingGuardians.length;i++){
             result[i] = GuardianUIData(existingGuardians[i], wallets[msg.sender].socialRecovery.fetchGuardianStatus(existingGuardians[i]));
         }
@@ -207,5 +208,20 @@ contract SmartWallet {
         return ( amount, to);
     }
 
-    
+    function fetchTransactionsRequiringApprovals() external view returns(TransactionUIData[] memory result){
+        address[] memory childAccounts = approvingAddresses[msg.sender];
+        uint maxTxShow =10;
+        result = new TransactionUIData[](maxTxShow);        
+        uint count;
+        for(uint i;i< childAccounts.length;i++){
+            TransactionUIData[] memory txArray = wallets[childAccounts[i]].multiSigWallet.getActiveTransactions();
+            for(uint j;j<txArray.length;j++){
+                result[count] = txArray[j];
+                count++;
+                if(count>=maxTxShow){
+                    return result;
+                } 
+            }
+        }
+    }
 }

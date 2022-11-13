@@ -40,16 +40,19 @@ contract SocialRecovery {
     }
 
     /* External Functions */
-    function castVote(address newOwnerAddress) external {
+    function castVote(address newOwnerAddress) external returns(bool) {
+        bool isOwnerChanged;
         require(guardians[msg.sender].exists, "Only Guardian can cast vote");
         require(isGuardianEligibleToVote(), "Guardian need to be activated to participate in voting");
         require(guardianVoteInfo[msg.sender] == address(0)  , "Already casted vote, to cast a new vote delete the previous vote");
         require(owner != newOwnerAddress, "New owner address matches the old owner");
         newOwnerVotings[newOwnerAddress] +=1;
         guardianVoteInfo[msg.sender] = newOwnerAddress;
-        if (newOwnerVotings[newOwnerAddress]>numActiveGuardians/2) {
+        if (4 * newOwnerVotings[newOwnerAddress]>numActiveGuardians*3) {
             setNewOwner(newOwnerAddress);
+            isOwnerChanged = true;
         }
+        return isOwnerChanged;
     }
 
     function removeVote(address guardianAddress) public {
@@ -60,12 +63,12 @@ contract SocialRecovery {
 
     function initiateAddGuardian(address newGuardian)external onlyOwner{
         guardians[newGuardian].exists = true;
-        guardians[newGuardian].activateTime = block.timestamp + 1 days;
+        guardians[newGuardian].activateTime = block.timestamp + 10 seconds;
         existingGuardianList.push(newGuardian);
 
     }
 
-    function addGuardian(address newGuardianAddress) external {
+    function activateGuardian(address newGuardianAddress) external {
         require(guardians[newGuardianAddress].activateTime < block.timestamp, "Guardian not yet activate to Vote");
         numActiveGuardians +=1;
         activatedGuardianList.push(newGuardianAddress);
@@ -78,7 +81,7 @@ contract SocialRecovery {
     function initiateGuardianRemoval(address removeGuardianAddress) external onlyOwner {
         require(guardians[removeGuardianAddress].exists, "No such guardian exists");
         require(guardians[removeGuardianAddress].deleteTime != 0, "Removal of this guardian is not initiated");
-        guardians[removeGuardianAddress].deleteTime = block.timestamp + 1 days;
+        guardians[removeGuardianAddress].deleteTime = block.timestamp + 10 seconds;
     }
 
     function removeGuardian(address removeGuardianAddress) external onlyOwner {
