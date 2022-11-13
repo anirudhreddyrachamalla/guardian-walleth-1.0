@@ -224,9 +224,10 @@ contract SmartWallet is Common{
                 result[count] = txArray[j];
                 count++;
                 if(count>=maxTxShow){
-                    return result;
+                    break;
                 } 
             }
         }
+        return result;
     }
 }
