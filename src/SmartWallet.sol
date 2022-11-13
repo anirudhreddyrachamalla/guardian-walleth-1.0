@@ -213,6 +213,10 @@ contract SmartWallet is Common{
         return ( amount, to);
     }
 
+    function getActiveTransactions() public view returns(TransactionUIData[] memory result){
+        return wallets[msg.sender].multiSigWallet.getActiveTransactions();
+    }
+
     function fetchTransactionsRequiringApprovals() external view returns(TransactionUIData[] memory result){
         address[] memory childAccounts = approvingAddresses[msg.sender];
         uint maxTxShow =10;
