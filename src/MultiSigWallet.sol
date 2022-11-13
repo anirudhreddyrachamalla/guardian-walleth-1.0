@@ -16,17 +16,20 @@ contract MultiSigWallet {
         bool isDeleted;
     }
 
+    address payable primaryWalletAddress;
     mapping(address => bool) isApprover;
     mapping(uint => mapping(address => bool)) isTransactionConfirmed;
     address public owner;
     Transaction[] public transactions;
     uint inactivePeriod;
     uint transactionLimit;
+    uint lastActiveTime;
 
     event MoneyReceived(address receiver, address sender, uint amount);
     event MoneySent(address sender, address receiver, uint amount);
 
     constructor(
+        address payable _primaryWalletAddress,
         uint _numOfConfirmationsRequired,
         address[] memory _approvers,
         uint _inactivePeriod,
@@ -53,10 +56,18 @@ contract MultiSigWallet {
                 }
             }
         }
+
+        primaryWalletAddress = _primaryWalletAddress;
         numOfConfirmationsRequired = _numOfConfirmationsRequired;
         approversData = _approvers;
         inactivePeriod = _inactivePeriod;
         transactionLimit = _transactionLimit;
+        lastActiveTime = block.timestamp;
+    }
+
+    modifier updateLastActiveTime() {
+        _;
+        lastActiveTime = block.timestamp;
     }
 
     modifier onlyMultiSig() {
@@ -66,6 +77,7 @@ contract MultiSigWallet {
         );
         _;
     }
+
     modifier txExists(uint _txIndex) {
         require(
             transactions[_txIndex].initiationTime > 0,
@@ -83,7 +95,7 @@ contract MultiSigWallet {
         address _to,
         uint _amount,
         bytes calldata _data
-    ) external returns (uint) {
+    ) external updateLastActiveTime returns (uint) {
         uint _txIndex = txIndex;
         bool isTransactionInitiatedByOwner = owner == tx.origin; //Doublt: does this make our contract more vulnerable?
         require(
@@ -174,7 +186,7 @@ contract MultiSigWallet {
 
     function revokeTransaction(uint _txIndex)
         external
-        onlyMultiSig
+        onlyMultiSig updateLastActiveTime
         returns (uint)
     {
         //TODO: check for deleted transaction
@@ -200,11 +212,11 @@ contract MultiSigWallet {
         // }
     }
 
-    function deleteTransaction(uint _txIndex) external {
+    function deleteTransaction(uint _txIndex) external updateLastActiveTime {
         transactions[_txIndex].isDeleted = true;
     }
 
-    function publishTransaction(uint _txIndex) external {
+    function publishTransaction(uint _txIndex) external updateLastActiveTime {
         //TODO: check for sufficient balance.
         //require(transactions[_txIndex].confirmationsDone>= numOfConfirmationsRequired, "Need more approvals");
         (bool sent, ) = transactions[_txIndex].to.call{
@@ -225,6 +237,23 @@ contract MultiSigWallet {
     {
         return (transactions[_txIndex].to, transactions[_txIndex].amount);
     }
+
+    function getInactivePeriod() public view returns (uint) {
+        return inactivePeriod;
+    }
+
+    function getLastActiveTime() public view returns (uint) {
+        return lastActiveTime;
+    }
+
+    function getBalance() external view returns (uint) {
+        return address(this).balance;
+    }
+
+    function getPrimaryWalletAddress() public view returns (address payable) {
+        return primaryWalletAddress;
+    }
+
 
     //TODO: adding and removing approvers
 }

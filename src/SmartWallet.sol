@@ -3,8 +3,9 @@ pragma solidity 0.8.17;
 
 import "./MultiSigWallet.sol";
 import "./SocialRecovery.sol";
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 
-contract SmartWallet {
+contract SmartWallet is AutomationCompatibleInterface {
     struct RecoveryWallet {
         SocialRecovery socialRecovery;
         MultiSigWallet multiSigWallet;
@@ -24,6 +25,12 @@ contract SmartWallet {
     mapping(address => RecoveryWallet) wallets;
     mapping(address => address[]) approvingAddresses;
     mapping(address => address[]) guardingAddresses;
+
+    MultiSigWallet[] multiSigWallets;
+    uint public immutable interval;
+    uint public lastTimeStamp;
+    uint public counter; // For testing
+
 
     //social recovery events
     event VoteCasted(address senderAddress, address walletOwner);
@@ -56,7 +63,14 @@ contract SmartWallet {
     event ApprovalNotRequired(address approver, uint txIndex);
     event TransactionCompleted(address sender, uint _txIndex);
 
+    constructor(uint updateInterval) {
+        interval = updateInterval;
+        lastTimeStamp = block.timestamp;
+        counter = 0;
+    }
+
     function createNewSmartWallet(
+        address payable _primaryWalletAddress,
         address[] memory _guardians,
         address[] memory _approvers,
         uint _numConfirmationsRequired,
@@ -69,6 +83,7 @@ contract SmartWallet {
             emit GuardianAdded(msg.sender, _guardians[i]);
         }
         MultiSigWallet mWallet = new MultiSigWallet(
+            _primaryWalletAddress,
             _numConfirmationsRequired,
             _approvers,
             _inactivePeriod,
@@ -81,6 +96,8 @@ contract SmartWallet {
         wallets[msg.sender] = RecoveryWallet(sRecovery, mWallet);
         emit WalletCreated(msg.sender, address(mWallet));
         //TODO: Store this mwallet address and listen to events in UI.
+
+        multiSigWallets.push(mWallet);
     }
 
     // MultiSigWallet
@@ -298,5 +315,41 @@ contract SmartWallet {
             .multiSigWallet
             .getTransaction(_txIndex);
         return (amount, to);
+    }
+
+    // Runs off-chain to determine if performUpkeep should be executed on-chain
+    function checkUpkeep(bytes calldata)
+        external
+        view
+        override
+        returns (
+            bool upkeepNeeded,
+            bytes memory /* performData */
+        )
+    {
+        upkeepNeeded = (block.timestamp - lastTimeStamp) > interval;
+    }
+
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
+        // Chainlink recommends we revalidate the upkeep in the performUpkeep function
+        if ((block.timestamp - lastTimeStamp) > interval) {
+            lastTimeStamp = block.timestamp;
+
+            counter = counter + 1;
+
+            for (uint i = 0; i < multiSigWallets.length; i++) {
+                if (
+                    lastTimeStamp >
+                    multiSigWallets[i].getLastActiveTime() +
+                        (multiSigWallets[i].getInactivePeriod() * 1 days)
+                ) {
+                    multiSigWallets[i].getPrimaryWalletAddress().transfer(
+                        multiSigWallets[i].getBalance()
+                    );
+                }
+            }
+        }
     }
 }
