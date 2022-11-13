@@ -142,7 +142,7 @@ contract MultiSigWallet is Common{
 
     function publishTransaction(uint _txIndex) external {
         //TODO: check for sufficient balance.
-        //require(transactions[_txIndex].confirmationsDone>= numOfConfirmationsRequired, "Need more approvals");
+        require(transactions[_txIndex].confirmationsDone>= numOfConfirmationsRequired, "Need more approvals");
         (bool sent, ) = transactions[_txIndex].to.call{value: transactions[_txIndex].amount}(transactions[_txIndex].data);
         require(sent, "Failed to send Ether");
         transactions[_txIndex].executed=true;
