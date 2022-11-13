@@ -169,7 +169,7 @@ contract MultiSigWallet is Common{
         for (uint i = 0; i < transactions.length; i++) {
             Transaction memory currTransaction = transactions[i];
             if(!currTransaction.executed && !currTransaction.isDeleted){
-                result[i] = TransactionUIData(address(this), i, currTransaction.to, currTransaction.amount,isTransactionConfirmed[i][tx.origin]);
+                result[i] = TransactionUIData(owner, i, currTransaction.to, currTransaction.amount,isTransactionConfirmed[i][tx.origin]);
             }
         }
         return result;
