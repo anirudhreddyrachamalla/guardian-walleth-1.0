@@ -68,7 +68,7 @@ contract SocialRecovery {
 
     }
 
-    function addGuardian(address newGuardianAddress) external {
+    function activateGuardian(address newGuardianAddress) external {
         require(guardians[newGuardianAddress].activateTime < block.timestamp, "Guardian not yet activate to Vote");
         numActiveGuardians +=1;
         activatedGuardianList.push(newGuardianAddress);
@@ -81,7 +81,7 @@ contract SocialRecovery {
     function initiateGuardianRemoval(address removeGuardianAddress) external onlyOwner {
         require(guardians[removeGuardianAddress].exists, "No such guardian exists");
         require(guardians[removeGuardianAddress].deleteTime != 0, "Removal of this guardian is not initiated");
-        guardians[removeGuardianAddress].deleteTime = block.timestamp + 1 seconds;
+        guardians[removeGuardianAddress].deleteTime = block.timestamp + 10 seconds;
     }
 
     function removeGuardian(address removeGuardianAddress) external onlyOwner {

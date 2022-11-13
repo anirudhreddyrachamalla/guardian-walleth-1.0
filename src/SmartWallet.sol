@@ -140,8 +140,8 @@ contract SmartWallet is Common{
         emit GuardianAdditionInitiated(msg.sender, _guardian);
     }
 
-    function addGuardian(address _guardian) public {
-        wallets[msg.sender].socialRecovery.addGuardian(_guardian);
+    function activateGuardian(address _guardian) public {
+        wallets[msg.sender].socialRecovery.activateGuardian(_guardian);
         guardingAddresses[_guardian].push(msg.sender);
         emit GuardianAdded(msg.sender, _guardian);
     }
@@ -208,10 +208,10 @@ contract SmartWallet is Common{
         return ( amount, to);
     }
 
-    function fetchTransactionsRequiringApprovals() external view returns(TransactionUIData[] memory){
+    function fetchTransactionsRequiringApprovals() external view returns(TransactionUIData[] memory result){
         address[] memory childAccounts = approvingAddresses[msg.sender];
         uint maxTxShow =10;
-        TransactionUIData[] memory result = new TransactionUIData[](maxTxShow);        
+        result = new TransactionUIData[](maxTxShow);        
         uint count;
         for(uint i;i< childAccounts.length;i++){
             TransactionUIData[] memory txArray = wallets[childAccounts[i]].multiSigWallet.getActiveTransactions();
