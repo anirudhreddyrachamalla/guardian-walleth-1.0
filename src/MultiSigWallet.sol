@@ -175,6 +175,10 @@ contract MultiSigWallet is Common{
         return result;
     }
 
+    function changeOwner(address newOwner) public{
+        owner = newOwner;
+    }
+
     //TODO: adding and removing approvers
 
 }

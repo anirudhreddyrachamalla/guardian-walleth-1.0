@@ -119,9 +119,14 @@ contract SmartWallet is Common{
     // SocialRecovery
     function castRecoveryVote(address oldWalletOwner, address _newOwnerAddress) public{
        bool isOwnerChanged = wallets[oldWalletOwner].socialRecovery.castVote(_newOwnerAddress);
+
        emit VoteCasted(msg.sender, oldWalletOwner);
        if(isOwnerChanged){
            address[] memory guardians = wallets[oldWalletOwner].socialRecovery.fetchExistingList();
+           RecoveryWallet memory moveWallet = wallets[oldWalletOwner];
+           delete wallets[oldWalletOwner];
+           wallets[_newOwnerAddress] = moveWallet;
+           wallets[_newOwnerAddress].multiSigWallet.changeOwner(_newOwnerAddress);
            for(uint i;i< guardians.length;i++){
                emit OwnerChanged(guardians[i], oldWalletOwner, _newOwnerAddress);
            }
