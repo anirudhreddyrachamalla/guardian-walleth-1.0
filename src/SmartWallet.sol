@@ -130,8 +130,8 @@ contract SmartWallet is Common{
 
     //TODO: Function to fetch casted votes by a guardian when they try to login
 
-    function removeRecoveryVote(address walletOwner, address _guardian) public{
-        wallets[msg.sender].socialRecovery.removeVote(_guardian);
+    function removeRecoveryVote(address walletOwner) public{
+        wallets[msg.sender].socialRecovery.removeVote(msg.sender);
         emit VoteRevoked(msg.sender, walletOwner);
     }
 

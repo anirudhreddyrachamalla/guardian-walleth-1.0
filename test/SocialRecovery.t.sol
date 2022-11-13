@@ -8,12 +8,12 @@ contract SocialRecoveryTest is Test {
     address[] guardians;
     address guardian1 = address(0xABCD);
     address guardian2 = address(0xABDC);
-
+    SocialRecovery socialRecovery;
     function setUp() public {
         vm.prank(address(0xAA));
         guardians.push(address(0xABCD));
         guardians.push(address(0xABDC));
-        SocialRecovery socialRecovery = new SocialRecovery(guardians);
+        socialRecovery = new SocialRecovery(guardians);
     }
 
 
