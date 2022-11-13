@@ -40,16 +40,19 @@ contract SocialRecovery {
     }
 
     /* External Functions */
-    function castVote(address newOwnerAddress) external {
+    function castVote(address newOwnerAddress) external returns(bool) {
+        bool isOwnerChanged;
         require(guardians[msg.sender].exists, "Only Guardian can cast vote");
         require(isGuardianEligibleToVote(), "Guardian need to be activated to participate in voting");
         require(guardianVoteInfo[msg.sender] == address(0)  , "Already casted vote, to cast a new vote delete the previous vote");
         require(owner != newOwnerAddress, "New owner address matches the old owner");
         newOwnerVotings[newOwnerAddress] +=1;
         guardianVoteInfo[msg.sender] = newOwnerAddress;
-        if (newOwnerVotings[newOwnerAddress]>numActiveGuardians/2) {
+        if (4 * newOwnerVotings[newOwnerAddress]>numActiveGuardians*3) {
             setNewOwner(newOwnerAddress);
+            isOwnerChanged = true;
         }
+        return isOwnerChanged;
     }
 
     function removeVote(address guardianAddress) public {

@@ -39,6 +39,7 @@ contract SmartWallet is Common{
     event TransactionDeleted(address sender, uint _txIndex);
     event ApprovalNotRequired(address approver, uint txIndex);
     event TransactionCompleted(address sender, uint _txIndex);
+    event OwnerChanged(address guardian, address oldOwner, address newOwner);
     function createNewSmartWallet(address[] memory _guardians, 
     address[] memory _approvers, 
     uint _numConfirmationsRequired,
@@ -116,9 +117,15 @@ contract SmartWallet is Common{
     }
 
     // SocialRecovery
-    function castRecoveryVote(address walletOwner, address _newOwnerAddress) public{
-       wallets[walletOwner].socialRecovery.castVote(_newOwnerAddress);
-       emit VoteCasted(msg.sender, walletOwner);
+    function castRecoveryVote(address oldWalletOwner, address _newOwnerAddress) public{
+       bool isOwnerChanged = wallets[oldWalletOwner].socialRecovery.castVote(_newOwnerAddress);
+       emit VoteCasted(msg.sender, oldWalletOwner);
+       if(isOwnerChanged){
+           address[] memory guardians = wallets[oldWalletOwner].socialRecovery.fetchExistingList();
+           for(uint i;i< guardians.length;i++){
+               emit OwnerChanged(guardians[i], oldWalletOwner, _newOwnerAddress);
+           }
+       }
     }
 
     //TODO: Function to fetch casted votes by a guardian when they try to login
